@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { Heart, TrendingUp, Users, Target, List, User } from "lucide-react-native";
+import { Heart, TrendingUp, Users, Target, List, User, Video } from "lucide-react-native";
 import { useCampaigns } from "@/hooks/use-campaigns";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -128,6 +128,21 @@ export default function HomeScreen() {
             
             <TouchableOpacity 
               style={styles.quickActionCard}
+              onPress={() => router.push("/virtual-visits" as any)}
+            >
+              <LinearGradient
+                colors={["#8b5cf6", "#7c3aed"]}
+                style={styles.quickActionGradient}
+              >
+                <Video color="#ffffff" size={24} />
+                <Text style={styles.quickActionText}>Virtual Visits</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+          
+          <View style={[styles.quickActions, { marginTop: 12 }]}>
+            <TouchableOpacity 
+              style={[styles.quickActionCard, { width: "100%" }]}
               onPress={() => router.push("/(tabs)/profile" as any)}
             >
               <LinearGradient
@@ -135,7 +150,7 @@ export default function HomeScreen() {
                 style={styles.quickActionGradient}
               >
                 <User color="#ffffff" size={24} />
-                <Text style={styles.quickActionText}>My Donations</Text>
+                <Text style={styles.quickActionText}>My Dashboard</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>

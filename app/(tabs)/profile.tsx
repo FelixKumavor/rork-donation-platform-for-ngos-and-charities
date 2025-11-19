@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -6,6 +6,8 @@ import {
   View,
   TouchableOpacity,
   Image,
+  Modal,
+  TextInput,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -17,13 +19,40 @@ import {
   Settings, 
   Bell,
   Share2,
-  CreditCard
+  CreditCard,
+  Mail,
+  Image as ImageIcon,
+  Video,
+  Play,
+  X,
+  Send,
+  MessageCircle,
 } from "lucide-react-native";
 import { useProfile } from "@/hooks/use-profile";
+import { useThankYouMessages } from "@/hooks/use-thank-you-messages";
+
 
 export default function ProfileScreen() {
   const { profile, donationHistory, stats } = useProfile();
+  const { messages, unreadCount, addReply } = useThankYouMessages(profile.id);
   const insets = useSafeAreaInsets();
+  const [selectedMessage, setSelectedMessage] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
+  const [showVideoModal, setShowVideoModal] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+
+  const handleSendReply = () => {
+    if (selectedMessage && replyText.trim()) {
+      addReply(selectedMessage, replyText);
+      setReplyText("");
+      setSelectedMessage(null);
+    }
+  };
+
+  const openVideoModal = (videoUrl: string) => {
+    setSelectedVideo(videoUrl);
+    setShowVideoModal(true);
+  };
 
   return (
     <View style={styles.container}>
@@ -130,6 +159,72 @@ export default function ProfileScreen() {
           ))}
         </View>
 
+        {/* Thank You Messages */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleContainer}>
+              <Text style={styles.sectionTitle}>Thank You Messages</Text>
+              {unreadCount > 0 && (
+                <View style={styles.unreadBadge}>
+                  <Text style={styles.unreadBadgeText}>{unreadCount}</Text>
+                </View>
+              )}
+            </View>
+            <TouchableOpacity>
+              <Text style={styles.viewAllText}>View All</Text>
+            </TouchableOpacity>
+          </View>
+
+          {messages.slice(0, 3).map((message) => (
+            <View key={message.id} style={styles.messageCard}>
+              <View style={styles.messageHeader}>
+                <View style={styles.messageTypeIcon}>
+                  {message.messageType === "text" && <Mail color="#2563eb" size={20} />}
+                  {message.messageType === "photo" && <ImageIcon color="#10b981" size={20} />}
+                  {message.messageType === "video" && <Video color="#f59e0b" size={20} />}
+                </View>
+                <View style={styles.messageSender}>
+                  <Text style={styles.senderName}>{message.senderName}</Text>
+                  <Text style={styles.senderRole}>{message.senderRole}</Text>
+                </View>
+                <Text style={styles.messageDate}>{message.createdAt}</Text>
+              </View>
+
+              {message.messageType === "photo" && message.contentUrl && (
+                <Image 
+                  source={{ uri: message.contentUrl }} 
+                  style={styles.messageImage}
+                />
+              )}
+
+              {message.messageType === "video" && message.contentUrl && (
+                <TouchableOpacity 
+                  style={styles.videoThumbnail}
+                  onPress={() => openVideoModal(message.contentUrl!)}
+                >
+                  <Image 
+                    source={{ uri: message.contentUrl.replace(".mp4", "-thumb.jpg") }} 
+                    style={styles.messageImage}
+                  />
+                  <View style={styles.playButton}>
+                    <Play color="#ffffff" size={32} fill="#ffffff" />
+                  </View>
+                </TouchableOpacity>
+              )}
+
+              <Text style={styles.messageText}>{message.textContent}</Text>
+
+              <TouchableOpacity 
+                style={styles.replyButton}
+                onPress={() => setSelectedMessage(message.id)}
+              >
+                <MessageCircle color="#2563eb" size={16} />
+                <Text style={styles.replyButtonText}>Send Encouragement</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+
         {/* Impact Summary */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Your Impact</Text>
@@ -156,6 +251,70 @@ export default function ProfileScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Reply Modal */}
+      <Modal
+        visible={selectedMessage !== null}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setSelectedMessage(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.replyModal}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Send Your Message</Text>
+              <TouchableOpacity onPress={() => setSelectedMessage(null)}>
+                <X color="#64748b" size={24} />
+              </TouchableOpacity>
+            </View>
+
+            <TextInput
+              style={styles.replyInput}
+              placeholder="Write an encouraging message..."
+              placeholderTextColor="#94a3b8"
+              value={replyText}
+              onChangeText={setReplyText}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+
+            <TouchableOpacity 
+              style={[styles.sendButton, !replyText.trim() && styles.sendButtonDisabled]}
+              onPress={handleSendReply}
+              disabled={!replyText.trim()}
+            >
+              <LinearGradient
+                colors={replyText.trim() ? ["#2563eb", "#1d4ed8"] : ["#cbd5e1", "#94a3b8"]}
+                style={styles.sendButtonGradient}
+              >
+                <Send color="#ffffff" size={20} />
+                <Text style={styles.sendButtonText}>Send Message</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Video Modal */}
+      <Modal
+        visible={showVideoModal}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setShowVideoModal(false)}
+      >
+        <View style={styles.videoModalOverlay}>
+          <TouchableOpacity 
+            style={styles.closeVideoButton}
+            onPress={() => setShowVideoModal(false)}
+          >
+            <X color="#ffffff" size={32} />
+          </TouchableOpacity>
+          <View style={styles.videoContainer}>
+            <Text style={styles.videoPlaceholder}>Video Player: {selectedVideo}</Text>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -368,5 +527,187 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#d1fae5",
     marginTop: 4,
+  },
+  sectionTitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  unreadBadge: {
+    backgroundColor: "#ef4444",
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    minWidth: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  unreadBadgeText: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: "#ffffff",
+  },
+  messageCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  messageHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  messageTypeIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#f1f5f9",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  messageSender: {
+    flex: 1,
+  },
+  senderName: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1e293b",
+  },
+  senderRole: {
+    fontSize: 12,
+    color: "#64748b",
+    marginTop: 2,
+  },
+  messageDate: {
+    fontSize: 12,
+    color: "#94a3b8",
+  },
+  messageImage: {
+    width: "100%",
+    height: 200,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  videoThumbnail: {
+    position: "relative",
+    marginBottom: 12,
+  },
+  playButton: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    transform: [{ translateX: -24 }, { translateY: -24 }],
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  messageText: {
+    fontSize: 14,
+    color: "#334155",
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  replyButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#eff6ff",
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 8,
+  },
+  replyButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#2563eb",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
+  },
+  replyModal: {
+    backgroundColor: "#ffffff",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#1e293b",
+  },
+  replyInput: {
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: "#1e293b",
+    minHeight: 120,
+    marginBottom: 16,
+  },
+  sendButton: {
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  sendButtonDisabled: {
+    opacity: 0.5,
+  },
+  sendButtonGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    gap: 8,
+  },
+  sendButtonText: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  videoModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.95)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  closeVideoButton: {
+    position: "absolute",
+    top: 48,
+    right: 24,
+    zIndex: 10,
+    padding: 8,
+  },
+  videoContainer: {
+    width: "90%",
+    aspectRatio: 16 / 9,
+    backgroundColor: "#000000",
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  videoPlaceholder: {
+    color: "#ffffff",
+    fontSize: 14,
   },
 });

@@ -72,7 +72,10 @@ export default function DonateScreen() {
     setTimeout(() => {
       setIsProcessing(false);
       console.log(`Donation of ${validAmount} processed successfully`);
-      router.back();
+      router.push({
+        pathname: "/donation-success",
+        params: { amount: validAmount.toString(), campaign: campaign.title }
+      } as any);
     }, 2000);
   };
 
